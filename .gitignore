@@ -1,0 +1,54 @@
+# --- Virtual Environments ---
+.venv/
+venv/
+ENV/
+env/
+
+# --- Environment Variables & Secrets ---
+.env
+.flaskenv
+*.env
+keys/
+*.json
+
+# --- Flask Specifics ---
+instance/
+.webassets-cache
+
+# --- Python Bytecode & Caches ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# --- Databases ---
+*.db
+*.sqlite3
+
+# --- Testing & Coverage ---
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.noscript/
+
+# --- Distribution / Packaging ---
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- IDEs & Text Editors ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
