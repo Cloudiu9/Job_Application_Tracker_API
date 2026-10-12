@@ -1,23 +1,11 @@
 from flask import Blueprint, abort, jsonify, request
-from services.application_service import get_application_by_id, get_applications, create_application, modify_application, delete_application, initialize_db, delete_db
+from services.application_service import get_application_by_id, get_applications, create_application, modify_application, delete_application
 
 application_bp = Blueprint(
     'applications', # Blueprint name
     __name__, # Import name
     url_prefix="/applications" # Prepends /applications to all routes in this BP
 )
-
-@application_bp.route("/init_db", methods=["POST"])
-def init_db():
-    result = initialize_db()
-
-    return result, 200
-
-@application_bp.route("/del_db", methods=["DELETE"])
-def del_db():
-    result = delete_db()
-
-    return result, 204
 
 # get specific app
 @application_bp.route("/<int:app_id>")
