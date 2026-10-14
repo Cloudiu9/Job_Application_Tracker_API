@@ -1,5 +1,7 @@
 from flask import Blueprint, abort, jsonify, request
 from services.application_service import get_application_by_id, get_applications, create_application, modify_application, delete_application
+from exceptions import ApplicationNotFoundError, ValidationError
+
 
 application_bp = Blueprint(
     'applications', # Blueprint name
@@ -39,24 +41,24 @@ def create_app():
     if app_data is None:
         return abort(500, description="Unexpected error.")
 
-    return app_data, 201
+    return jsonify(app_data), 201
 
 # modify existing app
 @application_bp.route("/<int:app_id>", methods=["PATCH"])
 def modify(app_id):
     data = request.get_json()
 
-    modified_application = modify_application(app_id, data)
+    try:
+        app_data = modify_application(app_id, data)
 
-    app_data, error_msg = modified_application
-
-    if error_msg is not None:
-        return abort(400, description=error_msg)
-
-    if app_data is None:
-        return abort(500, description="Unexpected error.")
-
-    return app_data, 200
+        return jsonify(app_data), 200
+    
+    except ValidationError as e:
+        return abort(400, description=e)
+    except ApplicationNotFoundError as e:
+        return abort(404, description=e)
+    except Exception:
+        return abort(500, description="Unexpected server error.")
     
 
 # delete app

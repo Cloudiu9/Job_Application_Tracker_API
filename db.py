@@ -109,6 +109,27 @@ def delete_id_db(app_id):
 
             return result
 
-# TODO refactor this into modify_application
-def update_id_db(app_id, data):
-    
+def update_id_db(app_id, data:dict):
+    if not data:
+        return None
+
+    # [... "column" : %s ...]
+    sql_parts = [
+        sql.SQL("{} = %s").format(sql.Identifier(column))
+        for column in data.keys()
+    ]
+
+    # "status" : %s, "title": "Junior Dev"
+    set_clause = sql.SQL(", ").join(sql_parts)
+
+    query = sql.SQL("UPDATE applications SET {fields} WHERE id = %s RETURNING *").format(
+            fields=set_clause
+        )
+    with get_db_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            query_values = list(data.values()) + [app_id]
+
+            cur.execute(query, query_values)
+            result = cur.fetchone()
+
+            return result

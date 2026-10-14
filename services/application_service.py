@@ -1,6 +1,8 @@
-from db import insert_db, retrieve_all_db, retrieve_id_db, delete_id_db
-from models.application import STATUS, all_applications, ALLOWED_KEYS
+from datetime import datetime
 
+from db import insert_db, retrieve_all_db, retrieve_id_db, delete_id_db, update_id_db
+from models.application import STATUS, ALLOWED_KEYS
+from exceptions import ApplicationNotFoundError, ValidationError
 
 def get_application_by_id(app_id):
     result = retrieve_id_db(app_id)
@@ -54,40 +56,52 @@ def create_application(data):
 
 
 def modify_application(app_id, data):
-    application_to_modify = None
-    for app in all_applications:
-        if app["id"] == app_id:
-            application_to_modify = app
-            break
-
-    if data is None:
-        return None, "Body must be a valid JSON."
-
-    if application_to_modify is None:
-        return None, "Could not find application to modify."
+    if not isinstance(data, dict):
+        raise ValidationError( "Body must be a valid JSON.")
 
     if "id" in data:
-        return None, "Cannot modify id."
+        raise ValidationError("Cannot modify id.")
 
+    DATE_FIELDS = ["date_interview", "date_applied"]
+
+    for field in DATE_FIELDS:
+        if field in data:
+            value = data[field]
+
+            if not isinstance(value, str):
+                raise ValidationError(f"The field {field} must be a string.")
+
+            try:
+                datetime.strptime(value, "%Y-%m-%d")
+            except ValueError:
+                raise ValidationError(
+                    f"Invalid date format for {field}. Please use the ISO standard YYYY-MM-DD (e.g., 2026-11-13)"
+                )
+
+    # all keys in allowed keys, is there any valid key in data
     if not any(key in data for key in ALLOWED_KEYS):
-        return None, "No valid fields provided to modify."
+        raise ValidationError("No valid fields provided to modify.") 
 
-        # wrong: any(key not in ALLOWED_KEYS for key in data)
-        # all keys in data, is there any key not allowed
+    # all keys in data, is there any key not allowed
     if any(key not in ALLOWED_KEYS for key in data):
-        return None, "Invalid field found."
+        raise ValidationError("Invalid field found.") 
+
+    if any(isinstance(value, str) and value.strip() == "" for value in data.values()):
+        raise ValidationError("Empty field found.") 
     
     for key in ALLOWED_KEYS:
         if key in data:
             if key == "status":
-                if data["status"] in STATUS:
-                    application_to_modify["status"] = data["status"]
-                else:
-                    return None, "Incorrect status."
-            else:
-                application_to_modify[key] = data[key]
+                if not data["status"] in STATUS:
+                    raise ValidationError("Incorrect status.") 
 
-    return application_to_modify, None
+    application_to_modify = update_id_db(app_id, data)
+
+    if application_to_modify is None:
+        raise ApplicationNotFoundError("Application not found.")
+    
+
+    return application_to_modify
 
 
 def delete_application(app_id):
