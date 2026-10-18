@@ -1,6 +1,5 @@
-from typing import Optional
-from datetime import datetime
-from sqlalchemy import CheckConstraint, Date, String, Text, func
+from datetime import date
+from sqlalchemy import CheckConstraint, Date, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 STATUS = ("applied", "interview")
@@ -19,12 +18,12 @@ class Application(Base):
     title: Mapped[str] = mapped_column(Text)
 
     # Default value is generated automatically by the DB (server-side) (date)
-    date_applied: Mapped[Date] = mapped_column(Date, server_default=func.current_date())
+    date_applied: Mapped[date] = mapped_column(Date, server_default=func.current_date())
     status: Mapped[str] = mapped_column(Text)
 
-    # Optional = can be null
-    date_interview: Mapped[Optional[Date]]
+    # Can be null
+    date_interview: Mapped[date | None]
 
     __table_args__ = (
-        CheckConstraint(f"status in {str(STATUS)}", name="check_status_validity"),
+        CheckConstraint(status.in_(STATUS), name="check_status_validity"),
     )
