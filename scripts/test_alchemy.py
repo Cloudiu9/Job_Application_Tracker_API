@@ -12,8 +12,16 @@ from models.application import Application
 
 with SessionFactory() as session:
     stmt = select(Application)
-    print("STATEMENT: ",stmt)
     applications = session.scalars(stmt).all()
 
+    # all applications
     for app in applications:
-        print(app.id, app.company, app.title, app.status)
+        print("Before: ", app.id, app.company, app.title, app.status)
+
+    app = session.get(Application, 24)
+    assert app is not None
+    app.company = "Updated company"
+    session.commit()
+
+    # modified application
+    print("After: ", app.id, app.company, app.title, app.status)

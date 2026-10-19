@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv
-from sqlalchemy import URL, create_engine
+from sqlalchemy import URL, create_engine, select
 from sqlalchemy.orm import sessionmaker
+
+from models.application import Application
 
 load_dotenv()
 
@@ -38,3 +40,27 @@ def get_db_session():
         yield session
     finally:
         session.close()
+
+def retrieve_all_alchemy(session):
+    stmt = select(Application)
+    applications = session.scalars(stmt).all()
+
+    all_apps = []
+
+    for app in applications:
+        # Copy object's dictionary
+        app_dict = app.__dict__.copy()
+        # Take out SQLAlchemy implicit key
+        app_dict.pop('_sa_instance_state', None)
+
+        
+        all_apps.append(app_dict)
+
+        # OR 
+        #        all_apps.append({
+        #     "id": app.id,
+        #     "company": app.company,
+        #     "title": app.title,
+        #     "status": app.status
+        # })
+    return all_apps

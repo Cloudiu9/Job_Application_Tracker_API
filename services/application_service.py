@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from db import insert_db, retrieve_all_db, retrieve_id_db, delete_id_db, update_id_db
+from db_alchemy import SessionFactory, retrieve_all_alchemy
 from models.application import STATUS, ALLOWED_KEYS
 from exceptions import ApplicationNotFoundError, ValidationError
 
@@ -14,7 +15,9 @@ def get_application_by_id(app_id):
 
 
 def get_applications():
-    all_jobs = retrieve_all_db()
+    with SessionFactory() as session:
+        all_jobs = retrieve_all_alchemy(session)
+        print(all_jobs)
     return all_jobs
 
 
