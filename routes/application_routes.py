@@ -12,10 +12,10 @@ application_bp = Blueprint(
 # get specific app
 @application_bp.route("/<int:app_id>")
 def get_app(app_id):
-    application = get_application_by_id(app_id)
-
-    if application is None:
-        return abort(404, description='Application not found.')
+    try:
+        application = get_application_by_id(app_id)
+    except ApplicationNotFoundError as e:
+        return abort(404, description=e)
     
     return jsonify(application)
 

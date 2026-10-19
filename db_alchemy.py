@@ -33,14 +33,6 @@ SessionFactory = sessionmaker(
     bind=engine,
 )
 
-def get_db_session():
-    """Generates a contextual transactional wrapper."""
-    session = SessionFactory()
-    try:
-        yield session
-    finally:
-        session.close()
-
 def retrieve_all_alchemy(session):
     stmt = select(Application)
     applications = session.scalars(stmt).all()
@@ -48,19 +40,28 @@ def retrieve_all_alchemy(session):
     all_apps = []
 
     for app in applications:
-        # Copy object's dictionary
-        app_dict = app.__dict__.copy()
-        # Take out SQLAlchemy implicit key
-        app_dict.pop('_sa_instance_state', None)
-
-        
-        all_apps.append(app_dict)
-
-        # OR 
-        #        all_apps.append({
-        #     "id": app.id,
-        #     "company": app.company,
-        #     "title": app.title,
-        #     "status": app.status
-        # })
+        all_apps.append({
+            "id": app.id,
+            "company": app.company,
+            "title": app.title,
+            "date_applied": app.date_applied,
+            "status": app.status,
+            "date_interview": app.date_interview
+        })
     return all_apps
+
+def retrieve_id_alchemy(session, app_id):
+    stmt = select(Application).where(Application.id == app_id)
+    application = session.scalars(stmt).one_or_none()
+
+    if application is None:
+        return None
+    
+    return {
+        "id": application.id,
+        "company": application.company,
+        "title": application.title,
+        "date_applied": application.date_applied,
+        "status": application.status,
+        "date_interview": application.date_interview
+    }

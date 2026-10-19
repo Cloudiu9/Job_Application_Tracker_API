@@ -1,24 +1,24 @@
 from datetime import datetime
 
 from db import insert_db, retrieve_all_db, retrieve_id_db, delete_id_db, update_id_db
-from db_alchemy import SessionFactory, retrieve_all_alchemy
+from db_alchemy import SessionFactory, retrieve_all_alchemy, retrieve_id_alchemy
 from models.application import STATUS, ALLOWED_KEYS
 from exceptions import ApplicationNotFoundError, ValidationError
 
 def get_application_by_id(app_id):
-    result = retrieve_id_db(app_id)
+    with SessionFactory() as session:
+        application = retrieve_id_alchemy(session, app_id)
 
-    if not result:
-        return None
+    if not application:
+        raise ApplicationNotFoundError("Application not found.")
 
-    return result
+    return application
 
 
 def get_applications():
     with SessionFactory() as session:
-        all_jobs = retrieve_all_alchemy(session)
-        print(all_jobs)
-    return all_jobs
+        all_apps = retrieve_all_alchemy(session)
+    return all_apps
 
 
 def create_application(data):
