@@ -24,6 +24,21 @@ class Application(Base):
     # Can be null
     date_interview: Mapped[date | None]
 
+    # Converting the model object into a dictionary ready to be returned
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "company": self.company,
+            "title": self.title,
+            "date_applied": self.date_applied.isoformat(),
+            "status": self.status,
+            "date_interview": (
+                self.date_interview.isoformat()
+                if self.date_interview is not None
+                else None
+            ),
+        }
+
     __table_args__ = (
         CheckConstraint(status.in_(STATUS), name="check_status_validity"),
     )

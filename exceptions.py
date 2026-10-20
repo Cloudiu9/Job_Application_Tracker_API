@@ -1,3 +1,6 @@
+from datetime import datetime
+
+
 class ApplicationNotFoundError(Exception):
     """Missing resource. (404)"""
     pass
@@ -5,3 +8,23 @@ class ApplicationNotFoundError(Exception):
 class ValidationError(Exception):
     """Invalid data. (400)"""
     pass
+
+def validate_dates(data):
+    DATE_FIELDS = ["date_interview", "date_applied"]
+
+    for field in DATE_FIELDS:
+        if field in data:
+            value = data[field]
+
+            if data[field] is None and field == "date_interview":
+                continue
+
+            if not isinstance(value, str):
+                raise ValidationError(f"The field {field} must be a string.")
+
+            try:
+                data[field] = datetime.strptime(value, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValidationError(
+                    f"Invalid date format for {field}. Please use the ISO standard YYYY-MM-DD (e.g., 2026-11-13)"
+                )

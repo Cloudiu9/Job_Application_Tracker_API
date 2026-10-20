@@ -1,15 +1,15 @@
 from datetime import datetime
 
 from db import insert_db, retrieve_all_db, retrieve_id_db, delete_id_db, update_id_db
-from db_alchemy import SessionFactory, retrieve_all_alchemy, retrieve_id_alchemy
+from db_alchemy import SessionFactory, retrieve_all_alchemy, retrieve_id_alchemy, insert_db_alchemy
 from models.application import STATUS, ALLOWED_KEYS
-from exceptions import ApplicationNotFoundError, ValidationError
+from exceptions import ApplicationNotFoundError, ValidationError, validate_dates
 
 def get_application_by_id(app_id):
     with SessionFactory() as session:
         application = retrieve_id_alchemy(session, app_id)
 
-    if not application:
+    if application is None:
         raise ApplicationNotFoundError("Application not found.")
 
     return application
@@ -22,40 +22,32 @@ def get_applications():
 
 
 def create_application(data):
-    if data is None:
-        return None, "Body must be a valid JSON."
+    if not isinstance(data, dict):
+        raise ValidationError("Body must be a valid JSON.")
+
+    if "id" in data:
+        raise ValidationError("Bad request. (Do not provide an id)")
     
     if data.get("status") not in STATUS:
-        return None, "Bad request. (Status is missing or wrong)"
+        raise ValidationError("Bad request. (Status is missing or wrong)")
     
     if not data.get("company"):
-        return None, "Bad request. (Missing company)"
+        raise ValidationError("Bad request. (Missing company)")
     
     if not data.get("title"):
-        return None, "Bad request. (Missing title)"
+        raise ValidationError("Bad request. (Missing title)")
 
-    # if omitted, = current date
-    # if not data.get("date_applied"):
-    #     return None, "Bad request. (Missing date applied)"
+    unknown_keys = set(data) - set(ALLOWED_KEYS)
+    if unknown_keys:
+        raise ValidationError(f"Unknown field(s): {', '.join(sorted(unknown_keys))}")
 
-    # check against application list being empty
-    # not necessary with PostgreSQL
-    # last_id = all_applications[-1]["id"] if all_applications else 0
+    validate_dates(data)
 
-    # new_app = { 
-    #     "id": last_id + 1, 
-    #     "company": data["company"], 
-    #     "title": data["title"], 
-    #     "date_applied": data["date_applied"], 
-    #     "status": data["status"], 
-    #     "date_interview": data.get("date_interview", None) 
-    # }
+    # .begin() automatically handles (try/except) commit() and rollback()
+    with SessionFactory.begin() as session:
+        new_job = insert_db_alchemy(session, data)
 
-    new_job = insert_db(data["company"],
-            data["title"], 
-            data["status"])
-
-    return new_job, None
+    return new_job
 
 
 def modify_application(app_id, data):
@@ -65,24 +57,7 @@ def modify_application(app_id, data):
     if "id" in data:
         raise ValidationError("Cannot modify id.")
 
-    DATE_FIELDS = ["date_interview", "date_applied"]
-
-    for field in DATE_FIELDS:
-        if field in data:
-            value = data[field]
-
-            if data[field] is None and field == "date_interview":
-                continue
-
-            if not isinstance(value, str):
-                raise ValidationError(f"The field {field} must be a string.")
-
-            try:
-                datetime.strptime(value, "%Y-%m-%d")
-            except ValueError:
-                raise ValidationError(
-                    f"Invalid date format for {field}. Please use the ISO standard YYYY-MM-DD (e.g., 2026-11-13, 2026-1-1)"
-                )
+    validate_dates(data)
 
     # all keys in allowed keys, is there any valid key in data
     if not any(key in data for key in ALLOWED_KEYS):

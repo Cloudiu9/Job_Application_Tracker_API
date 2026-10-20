@@ -15,7 +15,7 @@ def get_app(app_id):
     try:
         application = get_application_by_id(app_id)
     except ApplicationNotFoundError as e:
-        return abort(404, description=e)
+        return abort(404, description=str(e))
     
     return jsonify(application)
 
@@ -31,17 +31,19 @@ def get_apps():
 def create_app():
     data = request.get_json()
 
-    new_application = create_application(data)
+    try:
+        new_application = create_application(data)
 
-    app_data, error_msg = new_application
+        app_data = new_application
 
-    if error_msg is not None:
-        return abort(400, description=error_msg)
+        if app_data is None:
+            return abort(500, description="Unexpected error.")
 
-    if app_data is None:
-        return abort(500, description="Unexpected error.")
-
-    return jsonify(app_data), 201
+        return jsonify(app_data), 201
+    except TypeError as e:
+        return abort(400, description="Type Error.")
+    except ValidationError as e:
+        return abort(400, description=str(e))
 
 # modify existing app
 @application_bp.route("/<int:app_id>", methods=["PATCH"])
@@ -54,9 +56,9 @@ def modify(app_id):
         return jsonify(app_data), 200
     
     except ValidationError as e:
-        return abort(400, description=e)
+        return abort(400, description=str(e))
     except ApplicationNotFoundError as e:
-        return abort(404, description=e)
+        return abort(404, description=str(e))
     except Exception:
         return abort(500, description="Unexpected server error.")
     
