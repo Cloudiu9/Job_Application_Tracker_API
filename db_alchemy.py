@@ -124,3 +124,42 @@ def insert_db_alchemy(session, data):
     session.refresh(app)
 
     return app.to_dict()
+
+def update_id_alchemy(session, app_id, data):
+    # if not data:
+    #     return None
+    application = session.get(Application, app_id)
+
+    if application is None:
+        return None
+
+    # seems to be wrong, doesn't cause actual changes in the DB
+    # because it just works on a copy of the application
+    # to_dict() created a copy
+    # application_dict = application.to_dict()
+
+    # for column in application_dict.keys():
+    #     if column in data:
+    #         application_dict[column] = data[column]
+
+    all_columns = set(Application.__table__.columns.keys())
+    excluded_columns = {"id"}
+
+    valid_columns = all_columns - excluded_columns
+
+    for key, value in data.items():
+        if key in valid_columns:
+            setattr(application, key, value)
+
+    return application.to_dict()
+
+def delete_id_alchemy(session, app_id):
+    application = session.get(Application, app_id)
+
+    if application is None:
+        return None
+
+    application_dict = application.to_dict()
+
+    session.delete(application)
+    return application_dict

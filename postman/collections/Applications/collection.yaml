@@ -1,0 +1,11 @@
+$kind: collection
+name: Applications
+variables:
+  - key: patchAppId
+    value: '9'
+  - key: patchBody
+    value: '{"company": "Updated Company"}'
+  - key: patchTestCase
+    value: '1'
+  - key: patchNonexistentId
+    value: '999999'

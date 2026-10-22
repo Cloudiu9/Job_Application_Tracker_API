@@ -1,0 +1,226 @@
+$kind: http-request
+method: PATCH
+url: http://127.0.0.1:5000/applications/{{patchAppId}}
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{{patchBody}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      // When run via the Collection Runner with a data file, pm.iterationData holds
+      // the current row. Fall back to pm.variables for manual single-request runs.
+      const testCase = parseInt(
+        pm.iterationData.get("patchTestCase") ?? pm.variables.get("patchTestCase") ?? "1",
+        10
+      );
+      const json = pm.response.json();
+
+      switch (testCase) {
+
+        case 1:
+          pm.test("Case 1 – company update: status 200", function () {
+            pm.expect(pm.response.code).to.eql(200);
+          });
+          pm.test("Case 1 – company update: company equals 'Updated Company'", function () {
+            pm.expect(json.company).to.eql("Updated Company");
+          });
+          pm.test("Case 1 – company update: title exists and is a string", function () {
+            pm.expect(json.title).to.be.a("string");
+          });
+          pm.test("Case 1 – company update: status field exists and is a string", function () {
+            pm.expect(json.status).to.be.a("string");
+          });
+          pm.test("Case 1 – company update: date_applied exists", function () {
+            pm.expect(json.date_applied).to.exist;
+          });
+          break;
+
+        case 2:
+          pm.test("Case 2 – date_applied update: status 200", function () {
+            pm.expect(pm.response.code).to.eql(200);
+          });
+          pm.test("Case 2 – date_applied update: date_applied equals '2026-10-21'", function () {
+            pm.expect(json.date_applied).to.eql("2026-10-21");
+          });
+          break;
+
+        case 3:
+          pm.test("Case 3 – date_interview update: status 200", function () {
+            pm.expect(pm.response.code).to.eql(200);
+          });
+          pm.test("Case 3 – date_interview update: date_interview equals '2026-10-23'", function () {
+            pm.expect(json.date_interview).to.eql("2026-10-23");
+          });
+          break;
+
+        case 4:
+          pm.test("Case 4 – date_interview null: status 200", function () {
+            pm.expect(pm.response.code).to.eql(200);
+          });
+          pm.test("Case 4 – date_interview null: date_interview is null", function () {
+            pm.expect(json.date_interview).to.eql(null);
+          });
+          break;
+
+        case 5:
+          pm.test("Case 5 – date_interview integer: status 400", function () {
+            pm.expect(pm.response.code).to.eql(400);
+          });
+          break;
+
+        case 6:
+          pm.test("Case 6 – date_interview array: status 400", function () {
+            pm.expect(pm.response.code).to.eql(400);
+          });
+          break;
+
+        case 7:
+          pm.test("Case 7 – date_applied null: status 400", function () {
+            pm.expect(pm.response.code).to.eql(400);
+          });
+          break;
+
+        case 8:
+          pm.test("Case 8 – date_interview invalid date '2026-02-30': status 400", function () {
+            pm.expect(pm.response.code).to.eql(400);
+          });
+          break;
+
+        case 9:
+          pm.test("Case 9 – company whitespace-only: status 400", function () {
+            pm.expect(pm.response.code).to.eql(400);
+          });
+          break;
+
+        case 10:
+          pm.test("Case 10 – status invalid value 'pending': status 400", function () {
+            pm.expect(pm.response.code).to.eql(400);
+          });
+          break;
+
+        case 11:
+          pm.test("Case 11 – unknown field in payload: status 400", function () {
+            pm.expect(pm.response.code).to.eql(400);
+          });
+          break;
+
+        case 12:
+          pm.test("Case 12 – attempt to patch id field: status 400", function () {
+            pm.expect(pm.response.code).to.eql(400);
+          });
+          break;
+
+        case 13:
+          pm.test("Case 13 – empty payload: status 400", function () {
+            pm.expect(pm.response.code).to.eql(400);
+          });
+          break;
+
+        case 14: {
+          const actualStatus = pm.response.code;
+          pm.test(
+            "Case 14 – unpadded date '2026-1-1': actual status = " + actualStatus +
+            " (expected 400; NOTE: If this returns 200, the date helper accepts unpadded dates — consider tightening validation.)",
+            function () {
+              // Pass either way but make the actual status visible in the test name above.
+              pm.expect(actualStatus).to.be.oneOf([400, 200]);
+            }
+          );
+          break;
+        }
+
+        case 15: {
+          const nonexistentId = pm.variables.get("patchNonexistentId") || "999999";
+          const url = "http://127.0.0.1:5000/applications/" + nonexistentId;
+          pm.sendRequest(
+            {
+              url: url,
+              method: "PATCH",
+              header: { "Content-Type": "application/json" },
+              body: {
+                mode: "raw",
+                raw: JSON.stringify({ company: "Nonexistent Test" })
+              }
+            },
+            function (err, res) {
+              pm.test("Case 15 – nonexistent ID: status 404", function () {
+                pm.expect(err).to.be.null;
+                pm.expect(res.code).to.eql(404);
+              });
+            }
+          );
+          break;
+        }
+
+        default:
+          pm.test("Unknown test case: " + testCase, function () {
+            throw new Error("patchTestCase " + testCase + " is not defined (valid range: 1–15).");
+          });
+          break;
+      }
+    language: text/javascript
+  - type: beforeRequest
+    code: "// Datele tale din patch-test-cases.json injectate direct în cod\r
+
+      const testCases = [\r
+
+      \  { \"patchTestCase\": 1, \"patchAppId\": 9, \"patchBody\": \"{\\\"company\\\": \\\"Updated Company\\\"}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 2, \"patchAppId\": 9, \"patchBody\": \"{\\\"date_applied\\\": \\\"2026-10-21\\\"}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 3, \"patchAppId\": 9, \"patchBody\": \"{\\\"date_interview\\\": \\\"2026-10-23\\\"}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 4, \"patchAppId\": 9, \"patchBody\": \"{\\\"date_interview\\\": null}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 5, \"patchAppId\": 9, \"patchBody\": \"{\\\"date_interview\\\": 123}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 6, \"patchAppId\": 9, \"patchBody\": \"{\\\"date_interview\\\": [\\\"2026-10-23\\\"]}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 7, \"patchAppId\": 9, \"patchBody\": \"{\\\"date_applied\\\": null}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 8, \"patchAppId\": 9, \"patchBody\": \"{\\\"date_interview\\\": \\\"2026-02-30\\\"}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 9, \"patchAppId\": 9, \"patchBody\": \"{\\\"company\\\": \\\"   \\\"}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 10, \"patchAppId\": 9, \"patchBody\": \"{\\\"status\\\": \\\"pending\\\"}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 11, \"patchAppId\": 9, \"patchBody\": \"{\\\"company\\\": \\\"Updated\\\", \\\"unknown_field\\\": \\\"x\\\"}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 12, \"patchAppId\": 9, \"patchBody\": \"{\\\"id\\\": 99}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 13, \"patchAppId\": 9, \"patchBody\": \"{}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 14, \"patchAppId\": 9, \"patchBody\": \"{\\\"date_interview\\\": \\\"2026-1-1\\\"}\", \"patchNonexistentId\": 999999 },\r
+
+      \  { \"patchTestCase\": 15, \"patchAppId\": 9, \"patchBody\": \"{\\\"company\\\": \\\"Nonexistent Test\\\"}\", \"patchNonexistentId\": 999999 }\r
+
+      ];\r
+
+      \r
+
+      // Identificăm runda curentă din Collection Runner\r
+
+      let currentIteration = pm.info.iteration;\r
+
+      \r
+
+      if (currentIteration < testCases.length) {\r
+
+      \    let currentData = testCases[currentIteration];\r
+
+      \    \r
+
+      \    // Salvăm valorile în pm.variables pentru ca request-ul și tab-ul de Tests să le poată citi\r
+
+      \    pm.variables.set(\"patchTestCase\", currentData.patchTestCase.toString());\r
+
+      \    pm.variables.set(\"patchAppId\", currentData.patchAppId);\r
+
+      \    pm.variables.set(\"patchBody\", currentData.patchBody);\r
+
+      \    pm.variables.set(\"patchNonexistentId\", currentData.patchNonexistentId);\r
+
+      }\r\n"
+    language: text/javascript

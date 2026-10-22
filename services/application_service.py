@@ -1,7 +1,5 @@
 from datetime import datetime
-
-from db import insert_db, retrieve_all_db, retrieve_id_db, delete_id_db, update_id_db
-from db_alchemy import SessionFactory, retrieve_all_alchemy, retrieve_id_alchemy, insert_db_alchemy
+from db_alchemy import SessionFactory, retrieve_all_alchemy, retrieve_id_alchemy, insert_db_alchemy, update_id_alchemy, delete_id_alchemy
 from models.application import STATUS, ALLOWED_KEYS
 from exceptions import ApplicationNotFoundError, ValidationError, validate_dates
 
@@ -57,8 +55,6 @@ def modify_application(app_id, data):
     if "id" in data:
         raise ValidationError("Cannot modify id.")
 
-    validate_dates(data)
-
     # all keys in allowed keys, is there any valid key in data
     if not any(key in data for key in ALLOWED_KEYS):
         raise ValidationError("No valid fields provided to modify.") 
@@ -74,7 +70,9 @@ def modify_application(app_id, data):
     
     # only allow strings, except for date_interview (which can be null)
     if not all(isinstance(value,str) or key == "date_interview" for key, value in data.items()):
-        raise ValidationError("Non-string field found.") 
+        raise ValidationError("Non-string field found.")
+
+    validate_dates(data)
     
     for key in ALLOWED_KEYS:
         if key in data:
@@ -82,20 +80,19 @@ def modify_application(app_id, data):
                 if not data["status"] in STATUS:
                     raise ValidationError("Incorrect status.") 
 
-    application_to_modify = update_id_db(app_id, data)
+    with SessionFactory.begin() as session:
+        application_to_modify = update_id_alchemy(session, app_id, data)
 
     if application_to_modify is None:
         raise ApplicationNotFoundError("Application not found.")
     
-
     return application_to_modify
 
-
 def delete_application(app_id):
-    result = delete_id_db(app_id)
+    with SessionFactory.begin() as session:
+        result = delete_id_alchemy(session, app_id)
 
     if not result:
-        return None, "Could not find application to delete."
+        raise ApplicationNotFoundError("Could not find application to delete.")
     
-    return result, None
-
+    return result

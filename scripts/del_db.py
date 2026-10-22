@@ -1,4 +1,4 @@
-from db import delete_db
+from db_old import delete_db
 
 if __name__ == "__main__":
     delete_db()

@@ -66,14 +66,12 @@ def modify(app_id):
 # delete app
 @application_bp.route("/<int:app_id>", methods=["DELETE"])
 def delete(app_id):
-    deleted_application = delete_application(app_id)
+    try:
+        deleted_application = delete_application(app_id)
 
-    app_data, error_msg = deleted_application
+        return "", 204
 
-    if error_msg:
-        return abort(404, description=error_msg)
-
-    if app_data is None:
-        return abort(500, description="Unexpected error.")
-
-    return "", 204
+    except ApplicationNotFoundError as e:
+        return abort(404, description=str(e))
+    except Exception:
+        return abort(500, description="Unexpected server error.")
