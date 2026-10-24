@@ -1,7 +1,6 @@
-from datetime import datetime
 from db_alchemy import SessionFactory, retrieve_all_alchemy, retrieve_id_alchemy, insert_db_alchemy, update_id_alchemy, delete_id_alchemy
 from models.application import STATUS, ALLOWED_KEYS
-from exceptions import ApplicationNotFoundError, ValidationError, validate_dates
+from exceptions import ApplicationNotFoundError, ValidationError, enforce_rules, validate_dates
 
 def get_application_by_id(app_id):
     with SessionFactory() as session:
@@ -39,6 +38,7 @@ def create_application(data):
     if unknown_keys:
         raise ValidationError(f"Unknown field(s): {', '.join(sorted(unknown_keys))}")
 
+    enforce_rules(data)
     validate_dates(data)
 
     # .begin() automatically handles (try/except) commit() and rollback()
@@ -63,22 +63,11 @@ def modify_application(app_id, data):
     if any(key not in ALLOWED_KEYS for key in data):
         raise ValidationError("Invalid field found.")   
 
-
-    # don't allow null, except for date_interview
-    if any((isinstance(value, str) and value.strip() == "") or (value is None and key != "date_interview") for key, value in data.items()):
-        raise ValidationError("Empty field found.") 
-    
-    # only allow strings, except for date_interview (which can be null)
-    if not all(isinstance(value,str) or key == "date_interview" for key, value in data.items()):
-        raise ValidationError("Non-string field found.")
-
+    enforce_rules(data)
     validate_dates(data)
     
-    for key in ALLOWED_KEYS:
-        if key in data:
-            if key == "status":
-                if not data["status"] in STATUS:
-                    raise ValidationError("Incorrect status.") 
+    if "status" in data and data["status"] not in STATUS:
+        raise ValidationError("Incorrect status.") 
 
     with SessionFactory.begin() as session:
         application_to_modify = update_id_alchemy(session, app_id, data)
@@ -92,7 +81,7 @@ def delete_application(app_id):
     with SessionFactory.begin() as session:
         result = delete_id_alchemy(session, app_id)
 
-    if not result:
+    if result is None:
         raise ApplicationNotFoundError("Could not find application to delete.")
     
     return result
