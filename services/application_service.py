@@ -26,7 +26,7 @@ def create_application(data):
         raise ValidationError("Bad request. (Do not provide an id)")
     
     if data.get("status") not in STATUS:
-        raise ValidationError("Bad request. (Status is missing or wrong)")
+        raise ValidationError("Bad request. (Missing or wrong status)")
     
     if not data.get("company"):
         raise ValidationError("Bad request. (Missing company)")
