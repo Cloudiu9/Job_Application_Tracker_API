@@ -26,41 +26,32 @@ def test_create_valid_application_success():
     assert result["company"] == "Google"
     assert isinstance(result, dict)
 
-def test_create_application_rejects_invalid_status():
-    data = {
+@pytest.mark.parametrize("data",
+    [
+    ({
         "company": "Google",
         "title": "Software Engineer",
         "status": "WRONG_STATUS"
-    }
-
-    raise_error(ValidationError, "create_application", data)
-
-def test_create_application_rejects_missing_fields():
-    data = {
+    }),
+        ({
         "company": "Google",
         "title": None,
         "status": "interview"
-    }
-
-    raise_error(ValidationError, "create_application", data)
-
-def test_create_application_rejects_non_string_values():
-    data = {
+    }),
+        ({
         "company": 123,
         "title": "Software Engineer",
         "status": "applied"
-    }
-
-    raise_error(ValidationError, "create_application", data)
-
-def test_create_application_rejects_unknown_fields():
-    data = {
+    }),
+        ({
         "company": "Google",
         "title": "Software Engineer",
         "status": "applied",
         "banana": "Google"
-    }
+    }),
+    ])
 
+def test_create_application_failure(data):
     raise_error(ValidationError, "create_application", data)
 
 def test_get_applications_success():

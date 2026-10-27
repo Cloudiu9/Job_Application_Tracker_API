@@ -22,7 +22,7 @@ def existing_application(client):
     response = client.post("/applications", json=payload)
 
     assert response.status_code == 201
-    return response
+    return response.json
 
 def test_get_all_applications_success(client, existing_application):
     payload2 = {
@@ -44,7 +44,7 @@ def test_get_all_applications_success(client, existing_application):
     assert len(body) == 2
 
     # can just check this, make sure to check before popping id
-    assert existing_application.json in body
+    assert existing_application in body
     
     for app in body:
         app_id = app.pop("id", None)
@@ -77,11 +77,11 @@ def test_get_all_applications_empty(client):
     assert response.json == []
 
 def test_get_application_success(client, existing_application):
-    app_id = existing_application.json["id"]
+    app_id = existing_application["id"]
     response = client.get(f"/applications/{app_id}")
 
     assert response.status_code == 200
-    assert response.json == existing_application.json
+    assert response.json == existing_application
 
 def test_get_nonexistent_application(client):
     nonexistent_app_id = NON_EXISTENT_ID
@@ -115,33 +115,35 @@ def test_post_success(client):
         "date_interview": None,
     }
 
-def test_post_invalid_status(client):
-    payload = {
+@pytest.mark.parametrize("payload, expected_status, expected_error, expected_details", [
+    ({
         "company": "Bosch",
         "title": "Junior Engineer",
         "status" : "INCORRECT_STATUS",
         "date_applied": '2026-10-26'
-    }
-
-    response = client.post("/applications", json=payload)
-
-    assert response.status_code == 400
-    assert response.json["error"] == "VALIDATION_ERROR"
-    assert "Missing or wrong status" in response.json["details"]
-
-def test_post_missing_field(client):
-    payload = {
+    }, 
+    400,
+    "VALIDATION_ERROR",
+    "Missing or wrong status"
+    ),
+    ({
         # "company": "Bosch",
         "title": "Junior Engineer",
         "status" : "applied",
         "date_applied": '2026-10-26'
-    }
-
+    }, 
+    400,
+    "VALIDATION_ERROR",
+    "Missing company"
+    ),
+])
+def test_post_failure(client, payload, expected_status, expected_error, expected_details):
     response = client.post("/applications", json=payload)
 
-    assert response.status_code == 400
-    assert response.json["error"] == "VALIDATION_ERROR"
-    assert "Missing company" in response.json["details"]
+    assert response.status_code == expected_status
+    assert response.json["error"] == expected_error
+    assert expected_details in response.json["details"]
+
 
 def test_patch_success(client, existing_application):
     modified_payload = {
@@ -149,7 +151,7 @@ def test_patch_success(client, existing_application):
         "status" : "interview"
     }
 
-    app_id = existing_application.json["id"]
+    app_id = existing_application["id"]
     modified_application = client.patch(f"/applications/{app_id}", json=modified_payload)
 
     assert modified_application.status_code == 200
@@ -159,47 +161,45 @@ def test_patch_success(client, existing_application):
     assert modified_application.json["date_applied"] == "2026-10-26"
     assert modified_application.json["date_interview"] is None
 
-def test_invalid_field_patch(client, existing_application):
-    modified_payload = {
+@pytest.mark.parametrize("payload, expected_status, expected_error, expected_details", [
+    ({
         "INCORRECT_FIELD": "Senior Software Engineer"
-    }
-
-    app_id = existing_application.json["id"]
-    modified_application = client.patch(f"/applications/{app_id}", json=modified_payload)
-
-    assert modified_application.status_code == 400
-    assert modified_application.json["error"] == "VALIDATION_ERROR"
-    assert "No valid fields provided to modify" in modified_application.json["details"]
-
-def test_invalid_status_patch(client, existing_application):
-    modified_payload = {
+    }, 
+    400,
+    "VALIDATION_ERROR",
+    "No valid fields provided to modify"
+    ),
+    ({
         "title": "Senior Software Engineer",
         "status" : "INCORRECT_STATUS"
-    }
+    }, 
+    400,
+    "VALIDATION_ERROR",
+    "Incorrect status"
+    ),
+])
+def test_patch_failure(client, existing_application, payload, expected_status, expected_error, expected_details):
+    app_id = existing_application["id"]
+    modified_application = client.patch(f"/applications/{app_id}", json=payload)
 
-    app_id = existing_application.json["id"]
-    modified_application = client.patch(f"/applications/{app_id}", json=modified_payload)
-
-    assert modified_application.status_code == 400
-    assert modified_application.json["error"] == "VALIDATION_ERROR"
-    assert "Incorrect status" in modified_application.json["details"]
+    assert modified_application.status_code == expected_status
+    assert modified_application.json["error"] == expected_error
+    assert expected_details in modified_application.json["details"]
 
 def test_nonexistent_patch(client):
     modified_payload = {
         "title": "Senior Software Engineer",
         "status" : "interview"
     }
-
-    nonexistent_app_id = NON_EXISTENT_ID
     
-    modified_application = client.patch(f"/applications/{nonexistent_app_id}", json=modified_payload)
+    modified_application = client.patch(f"/applications/{NON_EXISTENT_ID}", json=modified_payload)
 
     assert modified_application.status_code == 404
     assert modified_application.json["error"] == "MISSING_ERROR"
     assert "Application not found" in modified_application.json["details"]
 
 def test_delete_success(client, existing_application):
-    app_id = existing_application.json["id"]
+    app_id = existing_application["id"]
     response = client.delete(f"/applications/{app_id}")
 
     assert response.status_code == 204
