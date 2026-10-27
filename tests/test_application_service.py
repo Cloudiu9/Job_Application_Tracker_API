@@ -28,27 +28,27 @@ def test_create_valid_application_success():
 
 @pytest.mark.parametrize("data",
     [
-    ({
+    pytest.param({
         "company": "Google",
         "title": "Software Engineer",
         "status": "WRONG_STATUS"
-    }),
-        ({
+    }, id="invalid_status"),
+    pytest.param({
         "company": "Google",
         "title": None,
         "status": "interview"
-    }),
-        ({
+    }, id="missing_field"),
+    pytest.param({
         "company": 123,
         "title": "Software Engineer",
         "status": "applied"
-    }),
-        ({
+    }, id="invalid_data"),
+    pytest.param({
         "company": "Google",
         "title": "Software Engineer",
         "status": "applied",
         "banana": "Google"
-    }),
+    }, id="invalid_field"),
     ])
 
 def test_create_application_failure(data):

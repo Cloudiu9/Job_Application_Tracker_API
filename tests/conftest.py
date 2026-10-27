@@ -41,8 +41,3 @@ def patch_session_factory(monkeypatch, test_session_factory):
     # replaces real factory with test one before testing
     monkeypatch.setattr(application_service,
      "SessionFactory", test_session_factory)
-
-def patch_route_factory(monkeypatch, test_session_factory):
-    # replaces real factory with test one before testing
-    monkeypatch.setattr(application_service,
-     "SessionFactory", test_session_factory)

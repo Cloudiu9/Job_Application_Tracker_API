@@ -1,7 +1,10 @@
-from flask import Blueprint, abort, jsonify, request
+from flask import Blueprint, json, jsonify, request
 from services.application_service import get_application_by_id, get_applications, create_application, modify_application, delete_application
 from exceptions import ApplicationNotFoundError, ValidationError
+import logging
+from werkzeug.exceptions import HTTPException
 
+logger = logging.getLogger(__name__)
 
 application_bp = Blueprint(
     'applications', # Blueprint name
@@ -26,6 +29,28 @@ def handle_missing_error(e):
         "details": str(e)
     }
     return jsonify(payload), 404
+
+@application_bp.app_errorhandler(Exception)
+def handle_500_error(e):
+    logger.exception(f"Unexpected server error: {str(e)}")
+
+    payload = {
+        "error": "INTERNAL_SERVER_ERROR",
+        "message": "Something went wrong. Please try again later.",
+    }
+    return jsonify(payload), 500
+
+@application_bp.app_errorhandler(HTTPException)
+def handle_http_exception(e):
+    response = e.get_response()
+
+    response.data = json.dumps({
+        "error": e.name.upper().replace(" ","_"),
+        "message": e.description,
+    })
+
+    response.content_type = "application/json"
+    return response
 
 # get specific app
 @application_bp.route("/<int:app_id>")
