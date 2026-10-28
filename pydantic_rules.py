@@ -3,6 +3,9 @@ from datetime import date
 from typing import Literal
 from pydantic import ValidationError as PydanticValidationError
 
+# needs a separate model for PATCH
+
+# POST
 class CreateApplicationRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid", # Crash if unexpected fields
