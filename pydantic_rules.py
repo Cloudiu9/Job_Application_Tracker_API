@@ -1,0 +1,43 @@
+from pydantic import BaseModel, ConfigDict, Field
+from datetime import date
+from typing import Literal
+from pydantic import ValidationError as PydanticValidationError
+
+class CreateApplicationRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid", # Crash if unexpected fields
+        str_strip_whitespace=True
+    )
+
+    company: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    date_applied: date = Field(default=None) # type: ignore # this can be omitted since it has a default, but can't be None
+    status: Literal["applied", "interview"]
+    date_interview: date | None = None
+
+valid_input = {
+    "company": "  Bosch ",
+    "title": "     Junior Engineer  ",
+    # "date_applied": None,
+    "status": "applied",
+    "date_interview": None
+}
+
+application = CreateApplicationRequest(**valid_input)
+db_data = application.model_dump(exclude_unset=True)
+print(db_data) # Removes the excluded None date_applied
+
+
+invalid_input = {
+    "company": "   ",
+    # "title": "     Junior Engineer  ",
+    "date_applied": "not-a-date",
+    "status": "INVALID_DATA",
+    "date_interview": 100,
+    "id": 1
+}
+
+try:
+    CreateApplicationRequest(**invalid_input)
+except PydanticValidationError as e:
+    print(e)

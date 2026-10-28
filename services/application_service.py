@@ -1,6 +1,8 @@
 from db_alchemy import SessionFactory, retrieve_all_alchemy, retrieve_id_alchemy, insert_db_alchemy, update_id_alchemy, delete_id_alchemy
 from models.application import STATUS, ALLOWED_KEYS
 from exceptions import ApplicationNotFoundError, ValidationError, enforce_rules, validate_dates
+from pydantic_rules import CreateApplicationRequest
+from pydantic import ValidationError as PydanticValidationError
 
 def get_application_by_id(app_id):
     with SessionFactory() as session:
@@ -22,28 +24,37 @@ def create_application(data):
     if not isinstance(data, dict):
         raise ValidationError("Body must be a valid JSON.")
 
-    if "id" in data:
-        raise ValidationError("Bad request. (Do not provide an id)")
+    # Can be ommitted now, thanks to Pydantic
+    # if "id" in data:
+    #     raise ValidationError("Bad request. (Do not provide an id)")
     
-    if data.get("status") not in STATUS:
-        raise ValidationError("Bad request. (Missing or wrong status)")
+    # if data.get("status") not in STATUS:
+    #     raise ValidationError("Bad request. (Missing or wrong status)")
     
-    if not data.get("company"):
-        raise ValidationError("Bad request. (Missing company)")
+    # if not data.get("company"):
+    #     raise ValidationError("Bad request. (Missing company)")
     
-    if not data.get("title"):
-        raise ValidationError("Bad request. (Missing title)")
+    # if not data.get("title"):
+    #     raise ValidationError("Bad request. (Missing title)")
 
-    unknown_keys = set(data) - set(ALLOWED_KEYS)
-    if unknown_keys:
-        raise ValidationError(f"Unknown field(s): {', '.join(sorted(unknown_keys))}")
+    try:
+        application = CreateApplicationRequest(**data)
+        validated_pydantic_data = application.model_dump(exclude_unset=True)
+    except PydanticValidationError as e:
+        raise ValidationError(str(e)) from e
 
-    enforce_rules(data)
-    validate_dates(data)
+    # Can be ommitted now, thanks to Pydantic
+    # unknown_keys = set(data) - set(ALLOWED_KEYS)
+    # if unknown_keys:
+    #     raise ValidationError(f"Unknown field(s): {', '.join(sorted(unknown_keys))}")
+
+    # Can be ommitted now, thanks to Pydantic
+    # enforce_rules(validated_pydantic_data)
+    # validate_dates(validated_pydantic_data)
 
     # .begin() automatically handles (try/except) commit() and rollback()
     with SessionFactory.begin() as session:
-        new_job = insert_db_alchemy(session, data)
+        new_job = insert_db_alchemy(session, validated_pydantic_data)
 
     return new_job
 

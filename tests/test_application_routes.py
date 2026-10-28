@@ -136,7 +136,7 @@ def test_post_success(client):
         "status" : "INCORRECT_STATUS",
         "date_applied": '2026-10-26'
     }, 
-    "Missing or wrong status",
+    "Input should be 'applied' or 'interview'",
     id="invalid_status"
     ),
     pytest.param({
@@ -145,7 +145,7 @@ def test_post_success(client):
         "status" : "applied",
         "date_applied": '2026-10-26'
     }, 
-    "Missing company",
+    "Field required",
     id="missing_company"
     ),
 ])
