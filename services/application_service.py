@@ -1,8 +1,9 @@
-from db_alchemy import SessionFactory, retrieve_all_alchemy, retrieve_id_alchemy, insert_db_alchemy, update_id_alchemy, delete_id_alchemy
+from db_alchemy import SessionFactory, retrieve_all_alchemy, retrieve_id_alchemy, insert_db_alchemy, update_id_alchemy, delete_id_alchemy, register_user_alchemy
 from models.application import STATUS, ALLOWED_KEYS
 from exceptions import ApplicationNotFoundError, ValidationError, enforce_rules, validate_dates
 from pydantic_rules import CreateApplicationRequest
 from pydantic import ValidationError as PydanticValidationError
+from security import hash_password
 
 def get_application_by_id(app_id):
     with SessionFactory() as session:
@@ -96,3 +97,14 @@ def delete_application(app_id):
         raise ApplicationNotFoundError("Could not find application to delete.")
     
     return result
+
+def register_user(email, password):
+    if not email or not password:
+        raise ValidationError("Missing email or password.")
+
+    pass_hash = hash_password(password)
+
+    data = email, pass_hash
+
+    with SessionFactory.begin() as session:
+        result = register_user_alchemy(session, data)

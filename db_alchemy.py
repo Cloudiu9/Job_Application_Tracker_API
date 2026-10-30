@@ -4,6 +4,7 @@ from sqlalchemy import URL, create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from models.application import Application
+from models.user import User
 
 load_dotenv()
 
@@ -163,3 +164,18 @@ def delete_id_alchemy(session, app_id):
 
     session.delete(application)
     return application_dict
+
+# def insert_db_alchemy(session, data):
+#     app = Application(**data)
+#     session.add(app)
+#     session.flush()
+#     session.refresh(app)
+
+#     return app.to_dict()
+def register_user_alchemy(session, data):
+    new_user = User(**data)
+    session.add(new_user)
+    session.flush()
+    session.refresh(new_user)
+
+    return new_user.to_dict()
